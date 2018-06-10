@@ -6,11 +6,16 @@ contract Ownable {
 
   function Ownable() {
     require(owner == 0);
-    msg.sender = owner;
+    owner = msg.sender;
   }
 
   modifier onlyOwner() {
     require(msg.sender == owner);
+    _;
+  }
+
+  modifier onlyAdministrator() {
+    require(administrators[msg.sender]);
     _;
   }
 }
@@ -22,14 +27,14 @@ contract Shop is Ownable{
     bytes32 dataHash;
     uint sum;
   }
-  mapping (bytes32 => trade) trades;
+  mapping (bytes32 => Trade) trades;
   uint commission = 10; // комиссия в %, умноженной на 100, например чтобы выставить комиссию 0.01% - указываем "1"
   uint commissionAmount; // размер доступных для вывода средств в wei
 
   event InitiateTrade(address sellerAddr, address buyerAddr, bytes32 dataHash, uint sum);
 
   function Shop(address[] _administrators) {
-    for(uint i = 0; i < _administrators.length(); i++) {
+    for(uint i = 0; i < _administrators.length; i++) {
       administrators[_administrators[i]] = true;
     }
     administrators[owner] = true;
@@ -49,8 +54,8 @@ contract Shop is Ownable{
      require(msg.value == _sum);
      require(ecrecover(_dataHash, uint8(_vSeller), _rSeller, _sSeller) == _sellerAddr); // проверяем корректность подписи продавца
      require(ecrecover(_dataHash, uint8(_vBuyer), _rBuyer, _sBuyer) == msg.sender); // проверяем корректность подписи покупателя
-     require(trades[_dataHash] == 0);
-     Trade trade = new Trade(_sellerAddr, msg.sender, _dataHash, _sum);
+     require(trades[_dataHash].dataHash == 0);
+     Trade memory trade = Trade(_sellerAddr, msg.sender, _dataHash, _sum);
      trades[_dataHash] = trade;
      InitiateTrade(_sellerAddr, msg.sender, _dataHash, _sum);
   }
@@ -73,7 +78,7 @@ contract Shop is Ownable{
     commission = _commission;
   }
 
-  function getCommissionAmount() public onlyOwner {
+  function getCommissionAmount() public onlyOwner returns(uint){
     return commissionAmount;
   }
 
