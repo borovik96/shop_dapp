@@ -1,4 +1,5 @@
 pragma solidity ^0.4.21;
+import "./SafeMath.sol";
 
 contract Ownable {
   address owner;
@@ -21,6 +22,7 @@ contract Ownable {
 }
 
 contract Shop is Ownable{
+  using SafeMath for uint;
   struct Trade {
     address sellerAddr;
     address buyerAddr;
@@ -32,8 +34,10 @@ contract Shop is Ownable{
   uint commissionAmount; // размер доступных для вывода средств в wei
 
   event InitiateTrade(address sellerAddr, address buyerAddr, bytes32 dataHash, uint sum);
+  event ResolveTrade(bytes32 tradeId, address sellerAddr, uint amount);
+  event RejectTrade(bytes32 tradeId, address buyerAddr, uint amount);
 
-  function Shop(address[] _administrators) {
+  function Shop(address[] _administrators) public{
     for(uint i = 0; i < _administrators.length; i++) {
       administrators[_administrators[i]] = true;
     }
@@ -60,12 +64,25 @@ contract Shop is Ownable{
      InitiateTrade(_sellerAddr, msg.sender, _dataHash, _sum);
   }
 
-  function resolveTrade(bytes32 tradeId) public{
-
+  function resolveTrade(bytes32 tradeId) public onlyAdministrator {
+    Trade memory trade = trades[tradeId];
+    uint _amountCommission = trade.sum;
+    _amountCommission = _amountCommission.div(10000).mul(commission); // 10000, т.к. комиссия хранится не в процентах (100% * 100)
+    uint amount = trade.sum.sub(_amountCommission);
+    address _sellerAddr = trade.sellerAddr;
+    commissionAmount = commissionAmount.add(_amountCommission);
+    _sellerAddr.transfer(amount);
+    delete(trades[tradeId]);
+    ResolveTrade(tradeId, _sellerAddr, amount);
   }
 
-  function rejectTrade(bytes32 tradeId) public{
-
+  function rejectTrade(bytes32 tradeId) public onlyAdministrator {
+    Trade memory trade = trades[tradeId];
+    uint amount = trade.sum;
+    address _buyerAddr = trade.buyerAddr;
+    _buyerAddr.transfer(amount);
+    delete(trades[tradeId]);
+    RejectTrade(tradeId, _buyerAddr, amount);
   }
 
   function withdrawCommission(address destination) public onlyOwner {
