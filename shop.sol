@@ -2,7 +2,7 @@ pragma solidity ^0.4.21;
 
 contract Ownable {
   address owner;
-  address[] administrators;
+  mapping (address => bool) administrators;
 
   function Ownable() {
     require(owner == 0);
@@ -29,7 +29,10 @@ contract Shop is Ownable{
   event Trade();
 
   function Shop(address[] _administrators) {
-    administrators = _administrators;
+    for(uint i = 0; i < _administrators.length(); i++) {
+      administrators[_administrators[i]] = true;
+    }
+    administrators[owner] = true;
   }
 
   function initiateTrade(
@@ -62,11 +65,13 @@ contract Shop is Ownable{
 
   }
 
-  function addAdministrator() onlyOwner {
-
+  function addAdministrator(address _administrator) onlyOwner {
+    require(!administrators[_administrator]);
+    administrators[_administrator] = true;
   }
 
-  function deleteAdminitstrator() onlyOwner {
-
+  function deleteAdminitstrator(address _administrator) onlyOwner {
+    require(administrators[_administrator]);
+    administrators[_administrator] = false;
   }
 }
