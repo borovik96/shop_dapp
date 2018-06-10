@@ -24,7 +24,8 @@ contract Shop is Ownable{
     uint sum;
   }
   mapping (bytes32 => trade) trades;
-  uint commission;
+  uint commission = 10; // комиссия в %, умноженной на 100, например чтобы выставить комиссию 0.01% - указываем "1"
+  uint commissionAmount; // размер доступных для вывода средств в wei
 
   event Trade();
 
@@ -53,16 +54,18 @@ contract Shop is Ownable{
 
   }
 
-  function withdrawCommission() onlyOwner {
-
+  function withdrawCommission(address destination) onlyOwner {
+    destination.transfer(commissionAmount);
+    commissionAmount = 0;
   }
 
-  function setCommission(uint commission) {
-
+  function setCommission(uint _commission) { // комиссия в %, умноженной на 100, например чтобы выставить комиссию 0.01% - указываем "1"
+    require(_commission > 0);
+    commission = _commission;
   }
 
   function getCommissionAmount() onlyOwner {
-
+    return commissionAmount;
   }
 
   function addAdministrator(address _administrator) onlyOwner {
