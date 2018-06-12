@@ -5,7 +5,7 @@ contract Ownable {
   address owner;
   mapping (address => bool) administrators;
 
-  function Ownable() {
+  constructor() public {
     require(owner == 0);
     owner = msg.sender;
   }
@@ -37,7 +37,7 @@ contract Shop is Ownable{
   event ResolveTrade(bytes32 tradeId, address sellerAddr, uint amount);
   event RejectTrade(bytes32 tradeId, address buyerAddr, uint amount);
 
-  function Shop(address[] _administrators) public{
+  constructor(address[] _administrators) public{
     for(uint i = 0; i < _administrators.length; i++) {
       administrators[_administrators[i]] = true;
     }
@@ -61,7 +61,7 @@ contract Shop is Ownable{
      require(trades[_dataHash].dataHash == 0);
      Trade memory trade = Trade(_sellerAddr, msg.sender, _dataHash, _sum);
      trades[_dataHash] = trade;
-     InitiateTrade(_sellerAddr, msg.sender, _dataHash, _sum);
+     emit InitiateTrade(_sellerAddr, msg.sender, _dataHash, _sum);
   }
 
   function resolveTrade(bytes32 tradeId) public onlyAdministrator {
@@ -73,7 +73,7 @@ contract Shop is Ownable{
     commissionAmount = commissionAmount.add(_amountCommission);
     _sellerAddr.transfer(amount);
     delete(trades[tradeId]);
-    ResolveTrade(tradeId, _sellerAddr, amount);
+    emit ResolveTrade(tradeId, _sellerAddr, amount);
   }
 
   function rejectTrade(bytes32 tradeId) public onlyAdministrator {
@@ -82,7 +82,7 @@ contract Shop is Ownable{
     address _buyerAddr = trade.buyerAddr;
     _buyerAddr.transfer(amount);
     delete(trades[tradeId]);
-    RejectTrade(tradeId, _buyerAddr, amount);
+    emit RejectTrade(tradeId, _buyerAddr, amount);
   }
 
   function withdrawCommission(address destination) public onlyOwner {
@@ -95,7 +95,7 @@ contract Shop is Ownable{
     commission = _commission;
   }
 
-  function getCommissionAmount() public onlyOwner returns(uint){
+  function getCommissionAmount() public onlyOwner view returns(uint){
     return commissionAmount;
   }
 
