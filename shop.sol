@@ -1,5 +1,6 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.21;
 import "./SafeMath.sol";
+import "./strings.sol";
 
 contract Ownable {
   address owner;
@@ -22,6 +23,7 @@ contract Ownable {
 }
 
 contract Shop is Ownable{
+  using strings for *;
   using SafeMath for uint;
   struct Trade {
     address sellerAddr;
@@ -56,7 +58,13 @@ contract Shop is Ownable{
     uint _sum
    ) payable public {
      require(msg.value == _sum);
-     require(ecrecover(_dataHash, uint8(_vSeller), _rSeller, _sSeller) == _sellerAddr); // проверяем корректность подписи продавца
+     bytes32[] memory req = new bytes32[](3);
+     req[0] = _dataHash;
+     req[1] = bytes32(_sum);
+     req[2] = bytes32(_sellerAddr);
+     string memory s = bytes32ArrayToString(req);
+     bytes32 __dataHash = stringToBytes32(s);
+     require(ecrecover(__dataHash, uint8(_vSeller), _rSeller, _sSeller) == _sellerAddr); // проверяем корректность подписи продавца
      require(ecrecover(_dataHash, uint8(_vBuyer), _rBuyer, _sBuyer) == msg.sender); // проверяем корректность подписи покупателя
      require(trades[_dataHash].dataHash == 0);
      Trade memory trade = Trade(_sellerAddr, msg.sender, _dataHash, _sum);
@@ -108,4 +116,45 @@ contract Shop is Ownable{
     require(administrators[_administrator]);
     administrators[_administrator] = false;
   }
+
+  function isAdministrator(address addr) public onlyOwner view returns(bool) {
+    return administrators[addr];
+  }
+
+    function bytes32ArrayToString (bytes32[] data) internal pure returns (string) {
+    bytes memory bytesString = new bytes(data.length * 32);
+    uint urlLength;
+    for (uint i=0; i<data.length; i++) {
+        for (uint j=0; j<32; j++) {
+            byte char = byte(bytes32(uint(data[i]) * 2 ** (8 * j)));
+            if (char != 0) {
+                bytesString[urlLength] = char;
+                urlLength += 1;
+            }
+        }
+    }
+    bytes memory bytesStringTrimmed = new bytes(urlLength);
+    for (i=0; i<urlLength; i++) {
+        bytesStringTrimmed[i] = bytesString[i];
+    }
+    return string(bytesStringTrimmed);
+    }
+
+    function toString(address x) returns (string) {
+        bytes memory b = new bytes(20);
+        for (uint i = 0; i < 20; i++)
+            b[i] = byte(uint8(uint(x) / (2**(8*(19 - i)))));
+        return string(b);
+    }
+
+    function stringToBytes32(string memory source) returns (bytes32 result) {
+    bytes memory tempEmptyStringTest = bytes(source);
+    if (tempEmptyStringTest.length == 0) {
+        return 0x0;
+    }
+
+    assembly {
+        result := mload(add(source, 32))
+    }
+}
 }
