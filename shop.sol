@@ -59,20 +59,14 @@ contract Shop is Ownable { // основной контракт
     uint _sum
    ) payable public {
      require(msg.value == _sum); // Нужна ли возможность присылать больше eth? Разницу вернем
-     // Приведение типов для проверки подписи (***ц какой-то)
-     bytes32[] memory req = new bytes32[](3);
-     req[0] = _dataHash;
-     req[1] = bytes32(_sum);
-     req[2] = bytes32(_sellerAddr);
-     string memory s = bytes32ArrayToString(req);
-     bytes32 __dataHash = stringToBytes32(s);
-
+     // Собираем хэш для проверки подписи
      bytes32 messageHash = keccak256(
        "\x19Ethereum Signed Message:\n32",
+       keccak256(abi.encodePacked(
         _dataHash,
         bytes32(_sum),
         bytes32(_sellerAddr)
-      );
+      )));
 
      require(ecrecover(messageHash, uint8(_vSeller), _rSeller, _sSeller) == _sellerAddr); // проверяем корректность подписи продавца
      require(ecrecover(messageHash, uint8(_vBuyer), _rBuyer, _sBuyer) == msg.sender); // проверяем корректность подписи покупателя
@@ -133,41 +127,5 @@ contract Shop is Ownable { // основной контракт
 
   function isAdministrator(address addr) public onlyOwner view returns(bool) { // проверка на администратора
     return administrators[addr];
-  }
-
-  function bytes32ArrayToString (bytes32[] data) internal pure returns (string) { // вспомогательная функция
-    bytes memory bytesString = new bytes(data.length * 32);
-    uint urlLength;
-    for (uint i=0; i<data.length; i++) {
-        for (uint j=0; j<32; j++) {
-            byte char = byte(bytes32(uint(data[i]) * 2 ** (8 * j)));
-            if (char != 0) {
-                bytesString[urlLength] = char;
-                urlLength += 1;
-            }
-        }
-    }
-    bytes memory bytesStringTrimmed = new bytes(urlLength);
-    for (i=0; i<urlLength; i++) {
-        bytesStringTrimmed[i] = bytesString[i];
-    }
-    return string(bytesStringTrimmed);
-  }
-
-  function toString(address x) internal pure returns (string) { // вспомогательная функция
-    bytes memory b = new bytes(20);
-    for (uint i = 0; i < 20; i++)
-        b[i] = byte(uint8(uint(x) / (2**(8*(19 - i))))); // magic code
-    return string(b);
-  }
-
-  function stringToBytes32(string memory source) internal pure returns (bytes32 result) { // вспомогательная функция
-    bytes memory tempEmptyStringTest = bytes(source);
-    if (tempEmptyStringTest.length == 0) {
-        return 0x0;
-    }
-    assembly {
-        result := mload(add(source, 32)) // добавим немного магии и все будет работать
-    }
   }
 }
