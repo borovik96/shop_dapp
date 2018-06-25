@@ -67,8 +67,15 @@ contract Shop is Ownable { // основной контракт
      string memory s = bytes32ArrayToString(req);
      bytes32 __dataHash = stringToBytes32(s);
 
-     require(ecrecover(__dataHash, uint8(_vSeller), _rSeller, _sSeller) == _sellerAddr); // проверяем корректность подписи продавца
-     require(ecrecover(_dataHash, uint8(_vBuyer), _rBuyer, _sBuyer) == msg.sender); // проверяем корректность подписи покупателя
+     bytes32 messageHash = keccak256(
+       "\x19Ethereum Signed Message:\n32",
+        _dataHash,
+        bytes32(_sum),
+        bytes32(_sellerAddr)
+      );
+
+     require(ecrecover(messageHash, uint8(_vSeller), _rSeller, _sSeller) == _sellerAddr); // проверяем корректность подписи продавца
+     require(ecrecover(messageHash, uint8(_vBuyer), _rBuyer, _sBuyer) == msg.sender); // проверяем корректность подписи покупателя
      require(trades[_dataHash].dataHash == 0); // проверяем, что сделки еще не существует
      Trade memory trade = Trade(_sellerAddr, msg.sender, _dataHash, _sum); // инициализация сделки
      trades[_dataHash] = trade;
