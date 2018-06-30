@@ -1,6 +1,5 @@
 pragma solidity ^0.4.21;
 import "./SafeMath.sol";
-import "./strings.sol";
 
 contract Ownable { // Базовый контракт, обеспечивающий разграничение доступа
   address owner;
@@ -23,8 +22,7 @@ contract Ownable { // Базовый контракт, обеспечивающ�
 }
 
 contract Shop is Ownable { // основной контракт
-  using strings for *; // инициализация библиотек
-  using SafeMath for uint;
+  using SafeMath for uint;  // инициализация библиотеки
   struct Trade { // струкутра, хранящая в себе сделку
     address sellerAddr;
     address buyerAddr;
@@ -60,13 +58,13 @@ contract Shop is Ownable { // основной контракт
    ) payable public {
      require(msg.value == _sum); // Нужна ли возможность присылать больше eth? Разницу вернем
      // Собираем хэш для проверки подписи
-     bytes32 messageHash = keccak256(
+     bytes32 messageHash = keccak256(abi.encodePacked(
        "\x19Ethereum Signed Message:\n32",
        keccak256(abi.encodePacked(
         _dataHash,
         bytes32(_sum),
         bytes32(_sellerAddr)
-      )));
+      ))));
 
      require(ecrecover(messageHash, uint8(_vSeller), _rSeller, _sSeller) == _sellerAddr); // проверяем корректность подписи продавца
      require(ecrecover(messageHash, uint8(_vBuyer), _rBuyer, _sBuyer) == msg.sender); // проверяем корректность подписи покупателя
@@ -86,8 +84,8 @@ contract Shop is Ownable { // основной контракт
     commissionAmount = commissionAmount.add(_amountCommission);
 
     // трансфер денег продавцу и удаление сделки
-    _sellerAddr.transfer(amount);
     delete(trades[tradeId]);
+    _sellerAddr.transfer(amount);
     emit ResolveTrade(tradeId, _sellerAddr, amount);
   }
 
@@ -96,14 +94,14 @@ contract Shop is Ownable { // основной контракт
     uint amount = trade.sum;
     address _buyerAddr = trade.buyerAddr;
     // перечисляем деньги обратно покупателю и удаляем сделку
-    _buyerAddr.transfer(amount);
     delete(trades[tradeId]);
+    _buyerAddr.transfer(amount);
     emit RejectTrade(tradeId, _buyerAddr, amount);
   }
 
   function withdrawCommission(address destination) public onlyOwner { // Вывод собранной комиссии на переданный адрес
-    destination.transfer(commissionAmount);
     commissionAmount = 0;
+    destination.transfer(commissionAmount);
   }
 
   function setCommission(uint _commission) onlyOwner public { // комиссия в %, умноженной на 100, например чтобы выставить комиссию 0.01% - указываем "1"
@@ -129,3 +127,4 @@ contract Shop is Ownable { // основной контракт
     return administrators[addr];
   }
 }
+    
